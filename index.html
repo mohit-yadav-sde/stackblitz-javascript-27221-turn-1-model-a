@@ -1,23 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <title>Home</title>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <!--
-      Need a visual blank slate?
-      Remove all code in `styles.css`!
-    -->
-    <link rel="stylesheet" href="styles.css" />
-    <script type="module" src="script.js"></script>
-  </head>
-  <body>
-    <nav>
-      <a href="/" aria-current="page">Home</a>
-      <a href="/page2.html">Other page</a>
-    </nav>
-    <main>
-      <h1>Home page</h1>
-    </main>
-  </body>
+<head>
+<meta charset="UTF-8">
+<title>Daily Goal Tracker</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    #goalWidget {
+        width: 300px;
+        margin: 20px auto;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .goal-item {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+    }
+    #progressBar {
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    #progressBarFill {
+        width: 0;
+        height: 100%;
+        background-color: #007bff;
+        border-radius: 10px;
+        transition: width 0.3s;
+    }
+    #quoteDisplay {
+        margin-top: 20px;
+        font-style: italic;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<div id="goalWidget" class="container">
+    <h3 class="text-center">Daily Goals</h3>
+    <input type="text" id="goalInput" class="form-control" placeholder="Enter a goal">
+    <select id="priorityInput" class="form-control mt-2">
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High" selected>High</option>
+    </select>
+    <button onclick="addGoal()" class="btn btn-primary mt-2 w-100">Add Goal</button>
+    <ul id="goalList" class="list-group mt-3"></ul>
+    <div id="progressBar"><div id="progressBarFill"></div></div>
+    <div id="quoteDisplay">Loading quote...</div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script>
+    const goals = [];
+    const quoteAPI = 'https://type.fit/api/quotes';
+
+    function fetchQuote() {
+        fetch(quoteAPI)
+            .then(response => response.json())
+            .then(data => {
+                const randomIndex = Math.floor(Math.random() * data.length);
+                document.getElementById('quoteDisplay').textContent = data[randomIndex].text;
+            });
+    }
+
+    function addGoal() {
+        const goalText = document.getElementById('goalInput').value;
+        const priority = document.getElementById('priorityInput').value;
+        if (goalText) {
+            goals.push({text: goalText, priority: priority, completed: false});
+            updateGoalsDisplay();
+            document.getElementById('goalInput').value = '';
+        }
+    }
+
+    function updateGoalsDisplay() {
+        const list = document.getElementById('goalList');
+        list.innerHTML = '';
+        goals.forEach((goal, index) => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item goal-item';
+            li.innerHTML = `
+                <span style="color: ${goal.priority === 'High' ? 'red' : goal.priority === 'Medium' ? 'orange' : 'green'}">${goal.text}</span>
+                <input type="checkbox" onchange="toggleComplete(${index})" ${goal.completed ? 'checked' : ''}>
+            `;
+            list.appendChild(li);
+        });
+        $(list).sortable({
+            update: function() { reorderGoals(); }
+        });
+        updateProgress();
+    }
+
+    function toggleComplete(index) {
+        goals[index].completed = !goals[index].completed;
+        updateGoalsDisplay();
+    }
+
+    function reorderGoals() {
+        const list = document.getElementById('goalList');
+        goals.length = 0; // Clear the array
+        Array.from(list.children).forEach((li, index) => {
+            const text = li.querySelector('span').textContent;
+            const priority = goals.find(g => g.text === text).priority; // Keep original priority
+            goals.push({text: text, priority: priority, completed: li.querySelector('input').checked});
+        });
+        updateProgress();
+    }
+
+    function updateProgress() {
+        const completed = goals.filter(g => g.completed).length;
+        const total = goals.length;
+        const percentage = total > 0 ? (completed / total) * 100 : 0;
+        document.getElementById('progressBarFill').style.width = percentage + '%';
+    }
+
+    fetchQuote();
+</script>
+
+</body>
 </html>
